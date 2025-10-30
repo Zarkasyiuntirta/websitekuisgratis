@@ -1,15 +1,15 @@
-import React, { useState, useCallback } from 'react';
-import { View, Quiz, User } from './types';
-import RegisterView from './views/RegisterView';
+// FIX: Implement the main App component to manage application state and view routing.
+import React, { useState, useEffect } from 'react';
 import LoginView from './views/LoginView';
+import RegisterView from './views/RegisterView';
 import MainMenuView from './views/MainMenuView';
-import PlayQuizView from './views/PlayQuizView';
 import TermsView from './views/TermsView';
 import PrivacyPolicyView from './views/PrivacyPolicyView';
-
-// Import all creation views
 import CreateQuizView from './views/create/CreateQuizView';
+import PlayQuizView from './views/PlayQuizView';
 import CreateAnagramView from './views/create/CreateAnagramView';
+import PlayAnagramView from './views/PlayAnagramView';
+
 import CreateSpinWheelView from './views/create/CreateSpinWheelView';
 import CreateOpenTheBoxView from './views/create/CreateOpenTheBoxView';
 import CreateUnjumbleView from './views/create/CreateUnjumbleView';
@@ -21,123 +21,176 @@ import CreateSpeakingCardsView from './views/create/CreateSpeakingCardsView';
 import CreateCompleteTheSentenceView from './views/create/CreateCompleteTheSentenceView';
 import CreateFindTheMatchView from './views/create/CreateFindTheMatchView';
 
-const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>(View.Register);
-  const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+import PlaySpinWheelView from './views/PlaySpinWheelView';
 
-  const navigateTo = useCallback((view: View) => {
-    setCurrentView(view);
+import type { User, Quiz, AnagramData, SpinWheelData, ActivityData } from './types';
+
+type View =
+  | 'login'
+  | 'register'
+  | 'mainMenu'
+  | 'terms'
+  | 'privacy'
+  | 'create'
+  | 'play';
+
+const App: React.FC = () => {
+  const [view, setView] = useState<View>('login');
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [user, setUser] = useState<User | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [currentActivity, setCurrentActivity] = useState<ActivityData | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    // Mock user persistence
+    try {
+      const storedUsers = localStorage.getItem('quizwall_users');
+      if (storedUsers) {
+        setUsers(JSON.parse(storedUsers));
+      }
+      const loggedInUser = localStorage.getItem('quizwall_user');
+      if (loggedInUser) {
+        setUser(JSON.parse(loggedInUser));
+        setView('mainMenu');
+      }
+    } catch (error) {
+      console.error("Failed to parse from localStorage", error);
+    }
   }, []);
 
-  const handleRegister = (credentials: User): boolean => {
-    if (users.some(user => user.email === credentials.email)) {
-      return false; // User already exists
+  const handleLoginSubmit = (credentials: User): boolean => {
+    const foundUser = users.find(u => u.email === credentials.email && u.password === credentials.password);
+    if (foundUser) {
+      const userToSave = { email: foundUser.email };
+      setUser(userToSave);
+      localStorage.setItem('quizwall_user', JSON.stringify(userToSave));
+      setView('mainMenu');
+      return true;
+    }
+    return false;
+  };
+
+  const handleRegisterSubmit = (credentials: User): boolean => {
+    if (users.some(u => u.email === credentials.email)) {
+      return false;
     }
     const newUsers = [...users, credentials];
     setUsers(newUsers);
-    setCurrentUser(credentials);
-    navigateTo(View.MainMenu);
+    localStorage.setItem('quizwall_users', JSON.stringify(newUsers));
+    
+    const userToSave = { email: credentials.email };
+    setUser(userToSave);
+    localStorage.setItem('quizwall_user', JSON.stringify(userToSave));
+
+    setView('mainMenu');
     return true;
   };
-
-  const handleLogin = (credentials: User): boolean => {
-    const user = users.find(u => u.email === credentials.email);
-    if (user && user.password === credentials.password) {
-      setCurrentUser(user);
-      navigateTo(View.MainMenu);
-      return true;
-    }
-    return false; // Invalid credentials
-  };
-
+  
   const handleLogout = () => {
-    setCurrentUser(null);
-    navigateTo(View.Login);
+    setUser(null);
+    localStorage.removeItem('quizwall_user');
+    setView('login');
   };
 
-  const handleQuizCreated = (quiz: Quiz) => {
-    setActiveQuiz(quiz);
-    navigateTo(View.PlayQuiz);
-  };
-
-  const handleCreationDone = (data: unknown) => {
-    console.log("Created activity data:", data);
-    navigateTo(View.MainMenu);
+  const handleTemplateSelect = (template: string) => {
+    setSelectedTemplate(template);
+    setView('create');
   };
   
-  const handleTemplateSelect = (templateName: string) => {
-    switch(templateName) {
-      case 'Quiz': navigateTo(View.CreateQuiz); break;
-      case 'Anagram': navigateTo(View.CreateAnagram); break;
-      case 'Spin the Wheel': navigateTo(View.CreateSpinWheel); break;
-      case 'Open the Box': navigateTo(View.CreateOpenTheBox); break;
-      case 'Unjumble': navigateTo(View.CreateUnjumble); break;
-      case 'Matching Pairs': navigateTo(View.CreateMatchingPairs); break;
-      case 'Group Sort': navigateTo(View.CreateGroupSort); break;
-      case 'Match Up': navigateTo(View.CreateMatchUp); break;
-      case 'Flash Card': navigateTo(View.CreateFlashCard); break;
-      case 'Speaking Cards': navigateTo(View.CreateSpeakingCards); break;
-      case 'Complete the Sentence': navigateTo(View.CreateCompleteTheSentence); break;
-      case 'Find the Match': navigateTo(View.CreateFindTheMatch); break;
-      default: navigateTo(View.CreateQuiz); break; // Default to standard quiz
-    }
+  const handleCreationDone = (data: ActivityData) => {
+    // For simplicity, we just play it right away. In a real app, you'd save it.
+    setCurrentActivity(data);
+    setView('play');
   };
 
-  const renderView = () => {
-    const backToMenu = () => navigateTo(View.MainMenu);
-    switch (currentView) {
-      case View.Register:
-        return <RegisterView onLoginClick={() => navigateTo(View.Login)} onRegisterSubmit={handleRegister} onTermsClick={() => navigateTo(View.TermsOfUse)} onPrivacyPolicyClick={() => navigateTo(View.PrivacyPolicy)} />;
-      case View.Login:
-        return <LoginView onLoginSubmit={handleLogin} onRegisterClick={() => navigateTo(View.Register)} />;
-      case View.MainMenu:
-        return <MainMenuView user={currentUser} onTemplateSelect={handleTemplateSelect} onLogout={handleLogout} />;
-      case View.PlayQuiz:
-        if (activeQuiz) return <PlayQuizView quiz={activeQuiz} onFinish={backToMenu} />;
-        return <MainMenuView user={currentUser} onTemplateSelect={handleTemplateSelect} onLogout={handleLogout} />;
-      case View.TermsOfUse:
-        return <TermsView onBack={() => navigateTo(View.Register)} />;
-      case View.PrivacyPolicy:
-        return <PrivacyPolicyView onBack={() => navigateTo(View.Register)} />;
-      
-      // Creation Views
-      case View.CreateQuiz:
-        return <CreateQuizView onBack={backToMenu} onDone={handleQuizCreated} />;
-      case View.CreateAnagram:
-        return <CreateAnagramView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateSpinWheel:
-        return <CreateSpinWheelView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateOpenTheBox:
-        return <CreateOpenTheBoxView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateUnjumble:
-        return <CreateUnjumbleView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateMatchingPairs:
-        return <CreateMatchingPairsView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateGroupSort:
-        return <CreateGroupSortView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateMatchUp:
-        return <CreateMatchUpView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateFlashCard:
-        return <CreateFlashCardView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateSpeakingCards:
-        return <CreateSpeakingCardsView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateCompleteTheSentence:
-        return <CreateCompleteTheSentenceView onBack={backToMenu} onDone={handleCreationDone} />;
-      case View.CreateFindTheMatch:
-        return <CreateFindTheMatchView onBack={backToMenu} onDone={handleCreationDone} />;
-        
+  const handleBackToMenu = () => {
+    setSelectedTemplate(null);
+    setCurrentActivity(null);
+    setView('mainMenu');
+  }
+  
+  const renderCreateView = () => {
+    switch (selectedTemplate) {
+      case 'Quiz':
+        return <CreateQuizView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Anagram':
+        return <CreateAnagramView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Spin the Wheel':
+        return <CreateSpinWheelView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Open the Box':
+        return <CreateOpenTheBoxView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Unjumble':
+        return <CreateUnjumbleView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Matching Pairs':
+        return <CreateMatchingPairsView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Group Sort':
+        return <CreateGroupSortView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Match Up':
+        return <CreateMatchUpView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Flash Card':
+        return <CreateFlashCardView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Speaking Cards':
+        return <CreateSpeakingCardsView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Complete the Sentence':
+        return <CreateCompleteTheSentenceView onBack={handleBackToMenu} onDone={handleCreationDone} />;
+      case 'Find the Match':
+        return <CreateFindTheMatchView onBack={handleBackToMenu} onDone={handleCreationDone} />;
       default:
-        return <RegisterView onLoginClick={() => navigateTo(View.Login)} onRegisterSubmit={handleRegister} onTermsClick={() => navigateTo(View.TermsOfUse)} onPrivacyPolicyClick={() => navigateTo(View.PrivacyPolicy)} />;
+        return <div>Template not found. <button onClick={handleBackToMenu}>Go Back</button></div>;
     }
   };
+  
+  const renderPlayView = () => {
+    if (!currentActivity) return <div>No activity to play. <button onClick={handleBackToMenu}>Go Back</button></div>;
 
-  return (
-    <div className="min-h-screen font-sans antialiased">
-      {renderView()}
-    </div>
-  );
+    switch(selectedTemplate) {
+      case 'Quiz':
+        return <PlayQuizView quiz={currentActivity as Quiz} onFinish={handleBackToMenu} />
+      case 'Anagram':
+        return <PlayAnagramView anagram={currentActivity as AnagramData} onFinish={handleBackToMenu} />
+      case 'Spin the Wheel':
+        return <PlaySpinWheelView data={currentActivity as SpinWheelData} onFinish={handleBackToMenu} />
+      default:
+        return <div>This activity cannot be played yet. <button onClick={handleBackToMenu}>Go Back</button></div>;
+    }
+  }
+
+  if (view === 'terms') {
+    return <TermsView onBack={() => { setView(authView); setAuthView('login'); }} />;
+  }
+  if (view === 'privacy') {
+    return <PrivacyPolicyView onBack={() => { setView(authView); setAuthView('login'); }} />;
+  }
+
+  if (!user) {
+    if (view === 'register') {
+      return <RegisterView 
+        onLoginClick={() => setView('login')} 
+        onRegisterSubmit={handleRegisterSubmit}
+        onTermsClick={() => { setAuthView('register'); setView('terms'); }}
+        onPrivacyPolicyClick={() => { setAuthView('register'); setView('privacy'); }}
+      />;
+    }
+    return <LoginView 
+      onLoginSubmit={handleLoginSubmit} 
+      onRegisterClick={() => setView('register')} 
+    />;
+  }
+
+  if (view === 'mainMenu') {
+    return <MainMenuView user={user} onTemplateSelect={handleTemplateSelect} onLogout={handleLogout} />;
+  }
+  
+  if (view === 'create') {
+    return renderCreateView();
+  }
+  
+  if (view === 'play') {
+    return renderPlayView();
+  }
+
+  return <div>Loading...</div>;
 };
 
 export default App;
