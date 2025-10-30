@@ -14,14 +14,15 @@ const PlayQuizView: React.FC<PlayQuizViewProps> = ({ quiz, onFinish }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    audioRef.current?.play().catch(error => {
-      // Autoplay was prevented.
-      console.log("Audio autoplay prevented by browser.");
-    });
+    if(quiz.audioUrl) {
+      audioRef.current?.play().catch(error => {
+        console.log("Audio autoplay prevented by browser.");
+      });
+    }
     return () => {
       audioRef.current?.pause();
     };
-  }, []);
+  }, [quiz.audioUrl]);
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const totalQuestions = quiz.questions.length;
@@ -50,7 +51,9 @@ const PlayQuizView: React.FC<PlayQuizViewProps> = ({ quiz, onFinish }) => {
     setScore(0);
     setSelectedAnswerId(null);
     setIsFinished(false);
-    audioRef.current?.play().catch(e => console.log("Audio autoplay prevented."));
+    if(quiz.audioUrl) {
+        audioRef.current?.play().catch(e => console.log("Audio autoplay prevented."));
+    }
   }
 
   const getButtonClass = (answer: Answer) => {
@@ -114,7 +117,7 @@ const PlayQuizView: React.FC<PlayQuizViewProps> = ({ quiz, onFinish }) => {
             100% { background-position: 0% 50%; }
           }
         `}</style>
-      <audio ref={audioRef} src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" loop />
+      {quiz.audioUrl && <audio ref={audioRef} src={quiz.audioUrl} loop />}
       <div className="w-full max-w-3xl mx-auto flex-grow flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <button onClick={onFinish} className="bg-white/10 px-3 py-1 rounded-md text-white/80 hover:bg-white/20 transition">&larr; Exit</button>
@@ -128,6 +131,13 @@ const PlayQuizView: React.FC<PlayQuizViewProps> = ({ quiz, onFinish }) => {
 
         <div className="bg-black/20 backdrop-blur-md p-6 sm:p-8 rounded-xl shadow-2xl flex-grow flex flex-col justify-center">
           <p className="text-right text-white/70 mb-4 font-medium">Question {currentQuestionIndex + 1} of {totalQuestions}</p>
+          
+          {currentQuestion.imageUrl && (
+            <div className="mb-6">
+                <img src={currentQuestion.imageUrl} alt="Question" className="max-h-60 w-auto mx-auto rounded-lg shadow-lg" />
+            </div>
+          )}
+
           <h2 className="text-2xl md:text-3xl font-semibold text-white mb-8 text-center drop-shadow-lg">{currentQuestion.text}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -136,9 +146,10 @@ const PlayQuizView: React.FC<PlayQuizViewProps> = ({ quiz, onFinish }) => {
                 key={answer.id}
                 onClick={() => handleAnswerClick(answer)}
                 disabled={!!selectedAnswerId}
-                className={`p-4 rounded-lg border-2 text-left font-semibold text-lg transition-all duration-300 transform disabled:cursor-not-allowed backdrop-blur-sm ${getButtonClass(answer)}`}
+                className={`p-3 rounded-lg border-2 text-left font-semibold text-lg transition-all duration-300 transform disabled:cursor-not-allowed backdrop-blur-sm flex items-center gap-4 ${getButtonClass(answer)}`}
               >
-                {answer.text}
+                {answer.imageUrl && <img src={answer.imageUrl} alt="" className="w-12 h-12 object-cover rounded-md flex-shrink-0 bg-black/20" />}
+                <span className="flex-grow">{answer.text}</span>
               </button>
             ))}
           </div>
