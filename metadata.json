@@ -1,0 +1,5 @@
+{
+  "name": "Interactive Quiz Dashboard",
+  "description": "A web application inspired by Wordwall for creating and managing interactive learning activities. Users can register, log in, and browse various quiz templates like Anagram, Spin the Wheel, and Multiple Choice Quizzes.",
+  "requestFramePermissions": []
+}
