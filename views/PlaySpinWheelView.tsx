@@ -15,6 +15,7 @@ const PlaySpinWheelView: React.FC<PlaySpinWheelViewProps> = ({ data, onFinish })
   const [rotation, setRotation] = useState(0);
   const [availableItems, setAvailableItems] = useState<SpinWheelItem[]>(data.items);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'wheel' | 'question'>('wheel');
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const totalItems = availableItems.length;
@@ -56,13 +57,25 @@ const PlaySpinWheelView: React.FC<PlaySpinWheelViewProps> = ({ data, onFinish })
     setTimeout(() => {
       setIsSpinning(false);
       setWinningItem(winner);
-      setIsModalOpen(true);
+      if (data.wheelType === 'question') {
+        setViewMode('question');
+      } else {
+        setIsModalOpen(true);
+      }
     }, 6000); // Corresponds to transition duration
   };
   
   const handleModalClose = () => {
     setIsModalOpen(false);
     setWinningItem(null);
+  };
+  
+  const handleContinueFromQuestion = () => {
+    if (winningItem) {
+      setAvailableItems(availableItems.filter(item => item.id !== winningItem.id));
+    }
+    setWinningItem(null);
+    setViewMode('wheel');
   };
 
   const handleEliminate = () => {
@@ -98,6 +111,25 @@ const PlaySpinWheelView: React.FC<PlaySpinWheelViewProps> = ({ data, onFinish })
             <button onClick={handleRestart} className="w-full bg-white text-blue-600 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg">Play Again</button>
             <button onClick={onFinish} className="w-full bg-blue-500/50 text-white py-3 rounded-lg font-semibold hover:bg-blue-500/80 transition-all transform hover:scale-105 shadow-lg">Back to Menu</button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (viewMode === 'question' && winningItem) {
+    return (
+      <div style={backgroundStyle} className="min-h-screen flex flex-col items-center justify-center p-4 text-white overflow-hidden">
+        <style>{`@keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }`}</style>
+        {data.audioUrl && <audio ref={audioRef} src={data.audioUrl} loop />}
+        <div className="bg-white/20 backdrop-blur-xl p-8 rounded-2xl shadow-2xl text-center max-w-2xl w-full">
+            <h2 className="text-xl font-semibold mb-4">The wheel landed on:</h2>
+            <p className="text-5xl font-bold text-white mb-8 break-words">{winningItem.text}</p>
+             <div className="bg-black/20 p-6 rounded-lg mt-4 mb-8">
+                 <p className="text-2xl font-medium text-white text-center break-words">{winningItem.question}</p>
+             </div>
+            <button onClick={handleContinueFromQuestion} className="w-full max-w-xs mx-auto bg-white text-blue-600 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg">
+              Continue
+            </button>
         </div>
       </div>
     );
@@ -157,32 +189,14 @@ const PlaySpinWheelView: React.FC<PlaySpinWheelViewProps> = ({ data, onFinish })
       {isModalOpen && winningItem && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 transition-opacity" onClick={handleModalClose}>
           <div className="bg-white text-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
-              {data.wheelType === 'simple' ? (
-                <div className="p-8 text-center">
-                  <h2 className="text-xl font-semibold mb-2">The wheel landed on:</h2>
-                  <p className="text-4xl font-bold text-blue-600 mb-8 break-words">{winningItem.text}</p>
-                   <div className="flex flex-col sm:flex-row gap-4">
-                    <button onClick={handleEliminate} className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-all transform hover:scale-105 shadow-lg">Eliminate</button>
-                    <button onClick={handleModalClose} className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all transform hover:scale-105 shadow-lg">Resume</button>
-                  </div>
+              <div className="p-8 text-center">
+                <h2 className="text-xl font-semibold mb-2">The wheel landed on:</h2>
+                <p className="text-4xl font-bold text-blue-600 mb-8 break-words">{winningItem.text}</p>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                  <button onClick={handleEliminate} className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-all transform hover:scale-105 shadow-lg">Eliminate</button>
+                  <button onClick={handleModalClose} className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all transform hover:scale-105 shadow-lg">Resume</button>
                 </div>
-              ) : (
-                <div className="p-8 text-center">
-                  <h2 className="text-xl font-semibold mb-2">The wheel landed on:</h2>
-                  <p className="text-4xl font-bold text-blue-600 mb-6 break-words">{winningItem.text}</p>
-                  
-                  {winningItem.question && (
-                     <div className="bg-gray-100 p-6 rounded-lg mt-4 mb-8">
-                         <p className="text-xl font-medium text-gray-800 text-center break-words">{winningItem.question}</p>
-                     </div>
-                  )}
-
-                   <div className="flex flex-col sm:flex-row gap-4">
-                    <button onClick={handleEliminate} className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-all transform hover:scale-105 shadow-lg">Eliminate</button>
-                    <button onClick={handleModalClose} className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all transform hover:scale-105 shadow-lg">Resume</button>
-                  </div>
-                </div>
-              )}
+              </div>
           </div>
         </div>
       )}
