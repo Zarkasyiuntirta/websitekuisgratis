@@ -129,6 +129,12 @@ const App: React.FC = () => {
     setView('play');
   };
 
+  const handleDeleteActivity = (activityId: string) => {
+    const newActivities = activities.filter(a => a.id !== activityId);
+    setActivities(newActivities);
+    localStorage.setItem('quizwall_activities', JSON.stringify(newActivities));
+  };
+
   const handleBackToMenu = () => {
     setSelectedTemplate(null);
     setCurrentActivity(null);
@@ -209,6 +215,7 @@ const App: React.FC = () => {
       activities={activities.filter(a => a.userEmail === user.email)}
       onTemplateSelect={handleTemplateSelect} 
       onPlayActivity={handlePlayActivity}
+      onDeleteActivity={handleDeleteActivity}
       onLogout={handleLogout} 
     />;
   }
