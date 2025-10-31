@@ -23,7 +23,7 @@ import CreateFindTheMatchView from './views/create/CreateFindTheMatchView';
 
 import PlaySpinWheelView from './views/PlaySpinWheelView';
 
-import type { User, Quiz, AnagramData, SpinWheelData, ActivityData } from './types';
+import type { User, Quiz, AnagramData, SpinWheelData, ActivityData, SavedActivity } from './types';
 
 type View =
   | 'login'
@@ -41,14 +41,21 @@ const App: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [currentActivity, setCurrentActivity] = useState<ActivityData | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [activities, setActivities] = useState<SavedActivity[]>([]);
 
   useEffect(() => {
-    // Mock user persistence
+    // Mock user and activity persistence
     try {
       const storedUsers = localStorage.getItem('quizwall_users');
       if (storedUsers) {
         setUsers(JSON.parse(storedUsers));
       }
+
+      const storedActivities = localStorage.getItem('quizwall_activities');
+      if (storedActivities) {
+        setActivities(JSON.parse(storedActivities));
+      }
+
       const loggedInUser = localStorage.getItem('quizwall_user');
       if (loggedInUser) {
         setUser(JSON.parse(loggedInUser));
@@ -99,8 +106,26 @@ const App: React.FC = () => {
   };
   
   const handleCreationDone = (data: ActivityData) => {
-    // For simplicity, we just play it right away. In a real app, you'd save it.
+    if (!user || !selectedTemplate) return;
+
+    const newActivity: SavedActivity = {
+      id: crypto.randomUUID(),
+      userEmail: user.email,
+      templateName: selectedTemplate,
+      data: data,
+    };
+
+    const newActivities = [...activities, newActivity];
+    setActivities(newActivities);
+    localStorage.setItem('quizwall_activities', JSON.stringify(newActivities));
+
     setCurrentActivity(data);
+    setView('play');
+  };
+  
+  const handlePlayActivity = (activity: SavedActivity) => {
+    setSelectedTemplate(activity.templateName);
+    setCurrentActivity(activity.data);
     setView('play');
   };
 
@@ -179,7 +204,13 @@ const App: React.FC = () => {
   }
 
   if (view === 'mainMenu') {
-    return <MainMenuView user={user} onTemplateSelect={handleTemplateSelect} onLogout={handleLogout} />;
+    return <MainMenuView 
+      user={user} 
+      activities={activities.filter(a => a.userEmail === user.email)}
+      onTemplateSelect={handleTemplateSelect} 
+      onPlayActivity={handlePlayActivity}
+      onLogout={handleLogout} 
+    />;
   }
   
   if (view === 'create') {

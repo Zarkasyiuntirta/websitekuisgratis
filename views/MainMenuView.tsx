@@ -1,11 +1,13 @@
 import React from 'react';
 import TemplateCard from '../components/TemplateCard';
-import type { User } from '../types';
+import type { User, SavedActivity } from '../types';
 
 
 interface MainMenuViewProps {
   user: User | null;
+  activities: SavedActivity[];
   onTemplateSelect: (template: string) => void;
+  onPlayActivity: (activity: SavedActivity) => void;
   onLogout: () => void;
 }
 
@@ -24,7 +26,7 @@ const templates = [
   { name: 'Find the Match', imageUrl: 'https://picsum.photos/seed/findmatch/400/300' },
 ];
 
-const MainMenuView: React.FC<MainMenuViewProps> = ({ user, onTemplateSelect, onLogout }) => {
+const MainMenuView: React.FC<MainMenuViewProps> = ({ user, activities, onTemplateSelect, onPlayActivity, onLogout }) => {
   return (
     <div className="bg-gray-100 min-h-screen">
       <header className="bg-white shadow-sm sticky top-0 z-10">
@@ -37,7 +39,30 @@ const MainMenuView: React.FC<MainMenuViewProps> = ({ user, onTemplateSelect, onL
         </div>
       </header>
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Choose a template to start</h2>
+        {activities && activities.length > 0 && (
+          <div className="mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">My Activities</h2>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <ul className="divide-y divide-gray-200">
+                {activities.map((activity) => (
+                  <li key={activity.id}>
+                    <button onClick={() => onPlayActivity(activity)} className="w-full text-left p-4 hover:bg-gray-50 transition-colors flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-gray-800 text-lg">{activity.data.title}</p>
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{activity.templateName}</span>
+                      </div>
+                      <span className="text-blue-600 font-semibold hidden sm:block">Play Again &rarr;</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        <h2 className="text-3xl font-bold text-gray-900 mb-8">
+          {activities && activities.length > 0 ? 'Create a New Activity' : 'Choose a template to start'}
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {templates.map((template) => (
             <TemplateCard

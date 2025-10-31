@@ -153,3 +153,10 @@ export interface FindTheMatchData {
 
 // Union type for all activity data
 export type ActivityData = Quiz | AnagramData | SpinWheelData | OpenTheBoxData | UnjumbleData | MatchingPairsData | GroupSortData | MatchUpData | FlashCardData | SpeakingCardsData | CompleteTheSentenceData | FindTheMatchData;
+
+export interface SavedActivity {
+  id: string;
+  userEmail: string;
+  templateName: string;
+  data: ActivityData;
+}
